@@ -134,15 +134,6 @@
             📍 当前路径：<%= GetCurrentPath() %>
         </div>
 
-        <!-- 调试信息（生产环境请删除） -->
-        <div style="background: #fff3cd; padding: 10px; margin: 10px 0; border: 1px solid #ffc107;">
-            <strong>调试信息：</strong><br/>
-            Request.Path: <%= Request.Path %><br/>
-            Request.FilePath: <%= Request.FilePath %><br/>
-            GetVirtualDirPrefix(): <%= GetVirtualDirPrefix() %><br/>
-            GetCurrentPhysicalPath(): <%= GetCurrentPhysicalPath() %>
-        </div>
-
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="搜索文件名..." />
             <button onclick="searchFiles()">搜索</button>
