@@ -80,6 +80,11 @@
         .file-name {
             color: #0078d4;
             text-decoration: none;
+            /* 添加以下换行样式 */
+            word-break: break-all;      /* 强制在任意字符间断行 */
+            word-wrap: break-word;      /* 允许单词内断行 */
+            display: inline-block;      /* 使宽度限制生效 */
+            max-width: 100%;            /* 限制最大宽度 */
         }
         .file-name:hover {
             text-decoration: underline;
@@ -132,12 +137,12 @@
         <!-- 调试信息（生产环境请删除） -->
         <div style="background: #fff3cd; padding: 10px; margin: 10px 0; border: 1px solid #ffc107;">
             <strong>调试信息：</strong><br/>
-            Request.ApplicationPath: <%= Request.ApplicationPath %><br/>
-            Request.PhysicalApplicationPath: <%= Request.PhysicalApplicationPath %><br/>
-            Server.MapPath("~/"): <%= Server.MapPath("~/") %><br/>
+            Request.Path: <%= Request.Path %><br/>
+            Request.FilePath: <%= Request.FilePath %><br/>
+            GetVirtualDirPrefix(): <%= GetVirtualDirPrefix() %><br/>
             GetCurrentPhysicalPath(): <%= GetCurrentPhysicalPath() %>
         </div>
-        
+
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="搜索文件名..." />
             <button onclick="searchFiles()">搜索</button>
@@ -165,7 +170,7 @@
                 <tr class="file-item">
                     <td>
                         <span class="file-icon">📁</span>
-                        <a href="<%= Request.ApplicationPath %>?path=<%= Server.UrlEncode(parentPath) %>" class="folder-name">..</a>
+                        <a href="<%= GetVirtualDirPrefix() %>?path=<%= Server.UrlEncode(parentPath) %>" class="folder-name">..</a>
                     </td>
                     <td class="size-info">-</td>
                     <td class="date-info">-</td>
@@ -184,7 +189,7 @@
                 <tr class="file-item">
                     <td>
                         <span class="file-icon">📁</span>
-                        <a href="<%= Request.ApplicationPath %>?path=<%= Server.UrlEncode(nextPath) %>" class="folder-name"><%= folder %></a>
+                        <a href="<%= GetVirtualDirPrefix() %>?path=<%= Server.UrlEncode(nextPath) %>" class="folder-name"><%= folder %></a>
                     </td>
                     <td class="size-info">-</td>
                     <td class="date-info">-</td>
@@ -204,7 +209,7 @@
                 <tr class="file-item">
                     <td>
                         <span class="file-icon"><%= fileIcon %></span>
-                        <a href="<%= Request.ApplicationPath %>/<%= file %>" class="file-name" download><%= file %></a>
+                        <a href="<%= GetVirtualDirPrefix() %>/<%= file %>" class="file-name" download><%= file %></a>
                     </td>
                     <td class="size-info"><%= fileSize %></td>
                     <td class="date-info"><%= fileDate %></td>
@@ -303,23 +308,29 @@
         return result.ToArray();
     }
 
+    // 添加新方法获取当前虚拟目录前缀
+    private string GetVirtualDirPrefix()
+    {
+        // 获取当前请求路径，去掉文件名
+        string path = Request.Path;
+        int lastSlash = path.LastIndexOf('/');
+        if (lastSlash > 0)
+        {
+            return path.Substring(0, lastSlash);
+        }
+        return "";
+    }
+
     // 获取当前物理路径
     private string GetCurrentPhysicalPath()
     {
-        // string basePath = Server.MapPath("~/");
-        // 使用 Request.ApplicationPath 获取虚拟目录路径
-        // string appPath = Request.ApplicationPath;
-        // string basePath = Server.MapPath(appPath);
-        // string pathParam = Request.QueryString["path"];
-        // 优先使用 Request.PhysicalApplicationPath（更可靠）
-        string basePath = Request.PhysicalApplicationPath;
-    
-        // 如果为空，回退到 Server.MapPath
-        if (string.IsNullOrEmpty(basePath))
-        {
-            basePath = Server.MapPath(Request.ApplicationPath);
-        }
-    
+        // 获取当前请求的虚拟路径（包含虚拟目录）
+        string requestPath = Request.Path;
+        
+        // 获取 Default.aspx 所在的物理路径
+        string basePath = Server.MapPath(Request.FilePath);
+        basePath = Path.GetDirectoryName(basePath);
+        
         // 确保路径末尾有分隔符
         if (!basePath.EndsWith(Path.DirectorySeparatorChar.ToString()))
         {
@@ -337,7 +348,7 @@
         pathParam = pathParam.Replace('/', Path.DirectorySeparatorChar);
         string fullPath = Path.Combine(basePath, pathParam);
         
-        // 安全验证
+        // 安全验证 - 确保路径在应用程序目录内
         if (!fullPath.StartsWith(basePath))
         {
             return basePath;
