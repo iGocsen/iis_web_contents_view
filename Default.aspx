@@ -47,33 +47,30 @@
             color: white;
             padding: 12px;
             text-align: left;
-            border: none;  /**/
+            /* border: none;   */
         }
         .file-table td {
             padding: 10px 12px;
-            border-bottom: 1px solid #eee;
         }
         .file-item { 
             transition: all 0.2s; 
-            background: white;  /**/
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);  /**/
         }
         .file-item:hover { 
             background: #f0f0f0; 
-            /* box-shadow: 0 4px 8px rgba(0,0,0,0.1);   */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);  
             transform: translateX(5px);
-            transform: scale(1.005);    /* 可选：轻微放大效果 */
+            /* transform: scale(1.005); */
         }
-        .file-item td {
-            border-radius: 6px;         /* 给单元格添加圆角 */
-            border: 1px solid #eee;     /* 可选：添加边框 */
-        }
-        .file-item td:first-child {  /**/
+        /* .file-item td {
+            border-radius: 6px;         给单元格添加圆角
+            border: 1px solid #eee;     可选：添加边框
+        } */
+        .file-item td:first-child {  
             border-top-left-radius: 8px;
             border-bottom-left-radius: 8px;
         }
 
-        .file-item td:last-child {  /**/
+        .file-item td:last-child {  
             border-top-right-radius: 8px;
             border-bottom-right-radius: 8px;
         }
@@ -105,7 +102,7 @@
             padding: 8px 12px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            width: 300px;
+            width: 268px;
         }
         .search-box button {
             padding: 8px 16px;
@@ -130,6 +127,15 @@
         
         <div class="path-info">
             📍 当前路径：<%= GetCurrentPath() %>
+        </div>
+
+        <!-- 调试信息（生产环境请删除） -->
+        <div style="background: #fff3cd; padding: 10px; margin: 10px 0; border: 1px solid #ffc107;">
+            <strong>调试信息：</strong><br/>
+            Request.ApplicationPath: <%= Request.ApplicationPath %><br/>
+            Request.PhysicalApplicationPath: <%= Request.PhysicalApplicationPath %><br/>
+            Server.MapPath("~/"): <%= Server.MapPath("~/") %><br/>
+            GetCurrentPhysicalPath(): <%= GetCurrentPhysicalPath() %>
         </div>
         
         <div class="search-box">
@@ -159,7 +165,7 @@
                 <tr class="file-item">
                     <td>
                         <span class="file-icon">📁</span>
-                        <a href="?path=<%= Server.UrlEncode(parentPath) %>" class="folder-name">..</a>
+                        <a href="<%= Request.ApplicationPath %>?path=<%= Server.UrlEncode(parentPath) %>" class="folder-name">..</a>
                     </td>
                     <td class="size-info">-</td>
                     <td class="date-info">-</td>
@@ -178,7 +184,7 @@
                 <tr class="file-item">
                     <td>
                         <span class="file-icon">📁</span>
-                        <a href="?path=<%= Server.UrlEncode(nextPath) %>" class="folder-name"><%= folder %></a>
+                        <a href="<%= Request.ApplicationPath %>?path=<%= Server.UrlEncode(nextPath) %>" class="folder-name"><%= folder %></a>
                     </td>
                     <td class="size-info">-</td>
                     <td class="date-info">-</td>
@@ -198,7 +204,7 @@
                 <tr class="file-item">
                     <td>
                         <span class="file-icon"><%= fileIcon %></span>
-                        <a href="<%= file %>" class="file-name" download><%= file %></a>
+                        <a href="<%= Request.ApplicationPath %>/<%= file %>" class="file-name" download><%= file %></a>
                     </td>
                     <td class="size-info"><%= fileSize %></td>
                     <td class="date-info"><%= fileDate %></td>
@@ -300,7 +306,26 @@
     // 获取当前物理路径
     private string GetCurrentPhysicalPath()
     {
-        string basePath = Server.MapPath("~/");
+        // string basePath = Server.MapPath("~/");
+        // 使用 Request.ApplicationPath 获取虚拟目录路径
+        // string appPath = Request.ApplicationPath;
+        // string basePath = Server.MapPath(appPath);
+        // string pathParam = Request.QueryString["path"];
+        // 优先使用 Request.PhysicalApplicationPath（更可靠）
+        string basePath = Request.PhysicalApplicationPath;
+    
+        // 如果为空，回退到 Server.MapPath
+        if (string.IsNullOrEmpty(basePath))
+        {
+            basePath = Server.MapPath(Request.ApplicationPath);
+        }
+    
+        // 确保路径末尾有分隔符
+        if (!basePath.EndsWith(Path.DirectorySeparatorChar.ToString()))
+        {
+            basePath += Path.DirectorySeparatorChar;
+        }
+        
         string pathParam = Request.QueryString["path"];
         
         if (string.IsNullOrEmpty(pathParam) || pathParam == "..")
