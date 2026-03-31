@@ -1,0 +1,15 @@
+{
+  "excludedFiles": [
+    "web.config",
+    "Default.aspx",
+    "Default_exclude.json",
+    "desktop.ini",
+    "thumbs.db"
+  ],
+  "excludedFolders": [
+    "other",
+    "temp",
+    "_backup",
+    ".git"
+  ]
+}

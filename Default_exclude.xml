@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ExcludeConfig>
+  <Files>
+    <Item>web.config</Item>
+    <Item>Default.aspx</Item>
+    <Item>Default_exclude.json</Item>
+    <Item>desktop.ini</Item>
+    <Item>thumbs.db</Item>
+  </Files>
+  <Folders>
+    <Item>other</Item>
+    <Item>temp</Item>
+    <Item>_backup</Item>
+    <Item>.git</Item>
+  </Folders>
+</ExcludeConfig>
