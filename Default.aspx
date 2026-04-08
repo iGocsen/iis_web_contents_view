@@ -157,11 +157,19 @@
                         string currentPath = GetCurrentPath().TrimStart('/');  // 去掉前导斜杠
                         int lastSlash = currentPath.LastIndexOf('/');
                         string parentPath = lastSlash > 0 ? currentPath.Substring(0, lastSlash) : "";
+                        
+                        // 如果 parentPath 为空，说明上一级是根目录，链接不应带 path 参数
+                        string parentLink = GetVirtualDirPrefix();
+                        if (!string.IsNullOrEmpty(parentPath))
+                        {
+                            parentLink += "?path=" + Server.UrlEncode(parentPath);
+                        }
                 %>
                 <tr class="file-item">
                     <td>
                         <span class="file-icon">📁</span>
-                        <a href="<%= GetVirtualDirPrefix() %>?path=<%= Server.UrlEncode(parentPath) %>" class="folder-name">..</a>
+                        <!-- 使用计算后的 parentLink -->
+                        <a href="<%= parentLink %>" class="folder-name">..</a>
                     </td>
                     <td class="size-info">-</td>
                     <td class="date-info">-</td>
@@ -176,11 +184,18 @@
                         string nextPath = string.IsNullOrEmpty(folderPath) 
                             ? folder 
                             : folderPath + "/" + folder;
+                            
+                        // 构建文件夹链接
+                        string folderLink = GetVirtualDirPrefix();
+                        // 只有当 nextPath 不为空时才添加 ?path=...
+                        // 注意：这里 nextPath 理论上不会为空，因为 folder 不为空
+                        // 但为了保险起见，如果是在根目录点击第一个文件夹，nextPath 就是文件夹名
+                        folderLink += "?path=" + Server.UrlEncode(nextPath);
                 %>
                 <tr class="file-item">
                     <td>
                         <span class="file-icon">📁</span>
-                        <a href="<%= GetVirtualDirPrefix() %>?path=<%= Server.UrlEncode(nextPath) %>" class="folder-name"><%= folder %></a>
+                        <a href="<%= folderLink %>" class="folder-name"><%= folder %></a>
                     </td>
                     <td class="size-info">-</td>
                     <td class="date-info">-</td>
@@ -196,11 +211,42 @@
                         string fileSize = FormatFileSize(fileInfo.Length);
                         string fileDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm");
                         string fileIcon = GetFileIcon(file);
+                        
+                        // 【修复】构建正确的文件下载路径
+                        string virtualDir = GetVirtualDirPrefix();
+                        string pathParam = Request.QueryString["path"];
+                        
+                        // 确保 virtualDir 不以 / 结尾，方便拼接
+                        if (virtualDir.EndsWith("/"))
+                        {
+                            virtualDir = virtualDir.TrimEnd('/');
+                        }
+                        
+                        string fileUrl;
+                        if (string.IsNullOrEmpty(pathParam))
+                        {
+                            // 根目录: /virtualDir/file
+                            fileUrl = virtualDir + "/" + file;
+                        }
+                        else
+                        {
+                            // 子目录: /virtualDir/path/file
+                            // 统一使用正斜杠，并去除首尾斜杠以防重复
+                            string cleanPath = pathParam.Replace('\\', '/').Trim('/');
+                            fileUrl = virtualDir + "/" + cleanPath + "/" + file;
+                        }
+                        
+                        // 关键修复：如果 virtualDir 是空字符串（例如在根站点且 GetVirtualDirPrefix 返回 ""），确保以 / 开头
+                        // 如果 GetVirtualDirPrefix 返回 "/"，则 virtualDir 变为 ""，fileUrl 变为 "/file" 或 "/path/file"，这是正确的。
+                        // 如果 GetVirtualDirPrefix 返回 "/app"，则 virtualDir 变为 "/app"，fileUrl 变为 "/app/file"，这也是正确的。
+                        // 之前的 bug 是因为 virtualDir 为 "/" 时，拼接变成 "//path/file"。
+                        // 现在 TrimEnd('/') 后，virtualDir 为 ""，拼接变成 "/path/file"。
                 %>
                 <tr class="file-item">
                     <td>
                         <span class="file-icon"><%= fileIcon %></span>
-                        <a href="<%= GetVirtualDirPrefix() %>/<%= file %>" class="file-name" download><%= file %></a>
+                        <!-- 使用计算后的 fileUrl -->
+                        <a href="<%= fileUrl %>" class="file-name" download><%= file %></a>
                     </td>
                     <td class="size-info"><%= fileSize %></td>
                     <td class="date-info"><%= fileDate %></td>
@@ -309,7 +355,7 @@
         {
             return path.Substring(0, lastSlash);
         }
-        return "";
+        return "/";
     }
 
     // 获取当前物理路径
